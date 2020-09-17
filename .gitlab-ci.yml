@@ -6,6 +6,11 @@ variables:
   LC_ALL: "en_US.UTF-8"
   LANG: "en_US.UTF-8"
 
+cache:
+  paths:
+    - Carthage/Build/
+    - Carthage/Checkouts/
+
 .bundler_before: &carthage_init
   - carthage bootstrap --platform ios --cache-builds
 
