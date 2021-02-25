@@ -1,18 +1,18 @@
 import XCTest
 #if !SWIFT_PACKAGE
 import OHHTTPStubs
+import Turf
 @testable import MapboxDirections
 
-
 class OfflineDirectionsTests: XCTestCase {
-    
     let token = "foo"
     let host = "api.mapbox.com"
+    let hostURL = URL(string: "https://api.mapbox.com")!
     
     func testAvailableVersions() {
-        let directions = Directions(accessToken: token, host: host)
+        let credentials = DirectionsCredentials(accessToken: token, host: hostURL)
+        let directions = Directions(credentials: credentials)
         
-        XCTAssertEqual(directions.accessToken, token)
         
         let versionsExpectation = expectation(description: "Fetching available versions should return results")
         
@@ -22,7 +22,7 @@ class OfflineDirectionsTests: XCTestCase {
             let filePath = URL(fileURLWithPath: path!)
             let data = try! Data(contentsOf: filePath)
             let jsonObject = try! JSONSerialization.jsonObject(with: data, options: [])
-            return OHHTTPStubsResponse(jsonObject: jsonObject, statusCode: 200, headers: ["Content-Type": "application/json"])
+            return HTTPStubsResponse(jsonObject: jsonObject, statusCode: 200, headers: ["Content-Type": "application/json"])
         }
         
         directions.fetchAvailableOfflineVersions { (versions, error) in
@@ -30,28 +30,16 @@ class OfflineDirectionsTests: XCTestCase {
             XCTAssertEqual(versions!.first!, "2018-10-16")
             
             versionsExpectation.fulfill()
-            OHHTTPStubs.removeStub(apiStub)
+            HTTPStubs.removeStub(apiStub)
         }
         
         wait(for: [versionsExpectation], timeout: 2)
     }
-    
-    func testCoordinateBounds() {
-        let bounds = CoordinateBounds(coordinates: [CLLocationCoordinate2D(latitude: 37.7890, longitude: -122.4337),
-                                                    CLLocationCoordinate2D(latitude: 37.7881, longitude: -122.4318)])
-        XCTAssertEqual(bounds.southWest.latitude, 37.7881)
-        XCTAssertEqual(bounds.southWest.longitude, -122.4337)
-        XCTAssertEqual(bounds.northEast.latitude, 37.7890)
-        XCTAssertEqual(bounds.northEast.longitude, -122.4318)
-        XCTAssertEqual(bounds.description, "-122.4337,37.7881;-122.4318,37.789")
-    }
 
     func testDownloadTiles() {
-        
-        let directions = Directions(accessToken: token, host: host)
-
-        let bounds = CoordinateBounds(coordinates: [CLLocationCoordinate2D(latitude: 37.7890, longitude: -122.4337),
-                                                    CLLocationCoordinate2D(latitude: 37.7881, longitude: -122.4318)])
+        let directions = Directions(credentials: BogusCredentials)
+        let bounds = BoundingBox(CLLocationCoordinate2D(latitude: 37.7890, longitude: -122.4337),
+                                 CLLocationCoordinate2D(latitude: 37.7881, longitude: -122.4318))
         
         let version = "2018-10-16"
         let downloadExpectation = self.expectation(description: "Download tile expectation")
@@ -69,7 +57,7 @@ class OfflineDirectionsTests: XCTestCase {
             headers["Accept-Ranges"] = "bytes"
             headers["Content-Disposition"] = "attachment; filename=\"\(version).tar\""
             
-            return OHHTTPStubsResponse(fileAtPath: path!, statusCode: 200, headers: headers)
+            return HTTPStubsResponse(fileAtPath: path!, statusCode: 200, headers: headers)
         }
         
         directions.downloadTiles(in: bounds, version: version, completionHandler: { (url, response, error) in
@@ -78,7 +66,7 @@ class OfflineDirectionsTests: XCTestCase {
             XCTAssertNil(error)
             
             downloadExpectation.fulfill()
-            OHHTTPStubs.removeStub(apiStub)
+            HTTPStubs.removeStub(apiStub)
         })
         
         wait(for: [downloadExpectation], timeout: 60)

@@ -1,31 +1,51 @@
 version: 2.1
 
-step-library:
-  - &restore-cache
-      restore_cache:
-        keys:
-          - carthage-cache-mbdirections-v3-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cartfile.resolved" }}
-          - carthage-cache-mbdirections-v3-{{ .Environment.CIRCLE_JOB }} # used if checksum fails
+commands:
+    install-mapbox-token:
+         steps:
+             - run:
+                 name: Install Mapbox Access Token
+                 command: echo "foo" > ~/.mapbox
 
-  - &save-cache
-      save_cache:
-        key: carthage-cache-mbdirections-v3-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cartfile.resolved" }}
-        paths:
-          - Carthage
+    restore-cache:
+         steps:
+             - restore_cache:
+                 name: Restore cache
+                 keys:
+                    - carthage-v1-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cartfile.resolved" }}
 
-  - &prepare
-      run:
-        name: Prepare
-        command: |
-          if [ $(carthage outdated | grep -cF "latest Carthage version") -eq 0 ]; then brew update && brew upgrade carthage || true; fi
-          echo "foo" > ~/.mapbox
+    save-cache:
+        steps:
+             - save_cache:
+                 key: carthage-v1-{{ .Environment.CIRCLE_JOB }}-{{ checksum "Cartfile.resolved" }}
+                 paths:
+                     - Carthage
+                     - Cartfile.resolved
 
-  - &publish-codecov
-      run:
-        name: Publish code coverage
-        command: bash <(curl -s https://codecov.io/bash)
+    install-carthage:
+        steps:
+            - run:
+                name: Install Carthage
+                command: |
+                    curl -OL "https://github.com/Carthage/Carthage/releases/download/0.34.0/Carthage.pkg"
+                    sudo installer -pkg Carthage.pkg -target /
+
+    publish-codecov:
+        steps:
+            - run:
+                name: Publish Code Coverage
+                command: bash <(curl -s https://codecov.io/bash)
 
 jobs:
+  spm-linux-job:
+    docker:
+      - image: swift:5.3
+    steps:
+      - checkout
+      # Limiting number of parallel jobs to avoid build crash bug.
+      - run: swift build --jobs=1
+      - run: swift test
+
   spm-job:
     parameters:
       xcode:
@@ -44,7 +64,7 @@ jobs:
         type: string
       device:
         type: string
-        default: "iPhone 6 Plus"
+        default: "iPhone 8 Plus"
       iOS:
         type: string
         default: "12.1"
@@ -66,8 +86,9 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
       - checkout
-      - *prepare
-      - *restore-cache
+      - install-mapbox-token
+      - install-carthage
+      - restore-cache
       - run:
           name: Install prerequisites
           command: |
@@ -75,47 +96,50 @@ jobs:
       - run:
           name: Dependencies
           command: |
-            carthage bootstrap --platform ios --cache-builds --configuration Debug --no-use-binaries
-            carthage bootstrap --platform tvos --cache-builds --configuration Debug --no-use-binaries
-            carthage bootstrap --platform macos --cache-builds --configuration Debug --no-use-binaries
-            carthage bootstrap --platform watchos --cache-builds --configuration Debug --no-use-binaries
-      - *save-cache
+            ./scripts/wcarthage.sh bootstrap --platform ios --cache-builds --configuration Debug --no-use-binaries
+            ./scripts/wcarthage.sh bootstrap --platform tvos --cache-builds --configuration Debug --no-use-binaries
+            ./scripts/wcarthage.sh bootstrap --platform macos --cache-builds --configuration Debug --no-use-binaries
+            ./scripts/wcarthage.sh bootstrap --platform watchos --cache-builds --configuration Debug --no-use-binaries
       - run:
           name: iOS
           command: xcodebuild -sdk iphonesimulator -project MapboxDirections.xcodeproj -scheme 'MapboxDirections iOS' -destination 'platform=iOS Simulator,OS=<< parameters.iOS >>,name=<< parameters.device >>' clean build <<# parameters.test >>test<</ parameters.test >><<# parameters.codecoverage >> -enableCodeCoverage "YES"<</ parameters.codecoverage >>
       - when:
           condition: << parameters.codecoverage >>
           steps:
-            - *publish-codecov
+            - publish-codecov
       - run:
           name: tvOS
           command: xcodebuild -project MapboxDirections.xcodeproj -scheme 'MapboxDirections tvOS' -destination 'platform=tvOS Simulator,name=Apple TV 4K (at 1080p),OS=<< parameters.tvOS >>' clean build <<# parameters.test >>test <</ parameters.test >> <<# parameters.codecoverage >>-enableCodeCoverage YES<</ parameters.codecoverage >>
       - when:
           condition: << parameters.codecoverage >>
           steps:
-            - *publish-codecov
+            - publish-codecov
       - run:
           name: macOS
           command: xcodebuild -project MapboxDirections.xcodeproj -scheme 'MapboxDirections Mac' clean build<<# parameters.test >> test <</ parameters.test >><<# parameters.codecoverage >>-enableCodeCoverage YES<</ parameters.codecoverage >>
       - run:
           name: watchOS
-          command: xcodebuild -project MapboxDirections.xcodeproj -scheme 'MapboxDirections watchOS' -destination 'platform=watchOS Simulator,name=Apple Watch Series 3 - 42mm,OS=<< parameters.watchOS >>' clean build
+          command: xcodebuild -project MapboxDirections.xcodeproj -scheme 'MapboxDirections watchOS' -destination 'platform=watchOS Simulator,name=Apple Watch Series 5 - 44mm,OS=<< parameters.watchOS >>' clean build
+      - save-cache
 
 workflows:
   workflow:
     jobs:
       - build-job:
-          name: "Xcode_10.2"
-          xcode: "10.2.0"
-          iOS: "12.2"
-          tvOS: "12.2"
-          watchOS: "5.2"
+          name: "Xcode_12.1"
+          xcode: "12.0.0"
+          iOS: "14.0"
+          tvOS: "14.0"
+          watchOS: "7.0"
       - build-job:
-          name: "Xcode_10.0"
-          xcode: "10.0.0"
-          iOS: "12.0"
-          tvOS: "12.0"
+          name: "Xcode_11.1"
+          xcode: "11.1.0"
+          iOS: "13.1"
+          tvOS: "13.0"
+          watchOS: "6.0"
           codecoverage: true
       - spm-job:
           name: "SPM_build"
-          xcode: "10.2.0"
+          xcode: "12.0.0"
+      - spm-linux-job:
+          name: "SPM_Ubuntu_build"
