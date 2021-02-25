@@ -411,7 +411,7 @@ open class DirectionsOptions: Codable {
         return waypointIndices.map(String.init(describing:)).joined(separator: ";")
     }
     
-    private var waypointNames: String? {
+    internal var waypointNames: String? {
         if waypoints.compactMap({ $0.name }).isEmpty {
             return nil
         }
@@ -430,6 +430,22 @@ open class DirectionsOptions: Codable {
         ]
         return components.percentEncodedQuery ?? ""
     }
+
+	/**
+	Data to send in the request body.
+	*/
+	internal var data: Data?
+	{
+		return nil
+	}
+
+	/**
+	Content-Type to set for the request if `requestData` is not nil.
+	*/
+	internal var contentType: String?
+	{
+		return nil
+	}
     
 }
 

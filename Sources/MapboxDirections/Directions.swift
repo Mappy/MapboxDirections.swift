@@ -61,12 +61,21 @@ let userAgent: String = {
     return components.joined(separator: " ")
 }()
 
+public protocol MappyDirectionDebugDelegate: AnyObject {
+    func directionWillRequest(urlRequest: URLRequest)
+    func directionDidReceive(data: Data?, response: URLResponse?, error: Error?)
+}
+
 /**
  A `Directions` object provides you with optimal directions between different locations, or waypoints. The directions object passes your request to the [Mapbox Directions API](https://docs.mapbox.com/api/navigation/#directions) and returns the requested information to a closure (block) that you provide. A directions object can handle multiple simultaneous requests. A `RouteOptions` object specifies criteria for the results, such as intermediate waypoints, a mode of transportation, or the level of detail to be returned.
  
  Each result produced by the directions object is stored in a `Route` object. Depending on the `RouteOptions` object you provide, each route may include detailed information suitable for turn-by-turn directions, or it may include only high-level information such as the distance, estimated travel time, and name of each leg of the trip. The waypoints that form the request may be conflated with nearby locations, as appropriate; the resulting waypoints are provided to the closure.
  */
 open class Directions: NSObject {
+    /**
+     Mappy Directions debug delegate
+     */
+    public weak var mappyDebugDelegate: MappyDirectionDebugDelegate?
     
     /**
      A tuple type representing the direction session that was generated from the request.
@@ -149,7 +158,11 @@ open class Directions: NSObject {
         options.fetchStartDate = Date()
         let session = (options: options as DirectionsOptions, credentials: self.credentials)
         let request = urlRequest(forCalculating: options)
-        let requestTask = URLSession.shared.dataTask(with: request) { (possibleData, possibleResponse, possibleError) in
+
+        mappyDebugDelegate?.directionWillRequest(urlRequest: request)
+
+        let requestTask = URLSession.shared.dataTask(with: request) { [weak mappyDebugDelegate] (possibleData, possibleResponse, possibleError) in
+            mappyDebugDelegate?.directionDidReceive(data: possibleData, response: possibleResponse, error: possibleError)
             
             if let urlError = possibleError as? URLError {
                 DispatchQueue.main.async {
@@ -187,7 +200,14 @@ open class Directions: NSObject {
                         return
                     }
                     
-                    guard (disposition.code == nil && disposition.message == nil) || disposition.code == "Ok" else {
+                    guard (disposition.code == nil && disposition.message == nil && disposition.mappyError == nil) || disposition.code == "Ok" else {
+                        if let mappyError = disposition.mappyError {
+                            let apiError = DirectionsError(mappyServerError: mappyError, response: response, underlyingError: possibleError)
+                            DispatchQueue.main.async {
+                                completionHandler(session, .failure(apiError))
+                            }
+                            return
+                        }
                         let apiError = DirectionsError(code: disposition.code, message: disposition.message, response: response, underlyingError: possibleError)
                         DispatchQueue.main.async {
                             completionHandler(session, .failure(apiError))
@@ -545,7 +565,12 @@ open class Directions: NSObject {
     open func urlRequest(forCalculating options: DirectionsOptions) -> URLRequest {
         let getURL = self.url(forCalculating: options, httpMethod: "GET")
         var request = URLRequest(url: getURL)
-        if getURL.absoluteString.count > MaximumURLLength {
+        if let data = options.data, let contentType = options.contentType {
+            request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+            request.httpMethod = "POST"
+            request.httpBody = data
+        }
+        else if getURL.absoluteString.count > MaximumURLLength {
             request.url = url(forCalculating: options, httpMethod: "POST")
             
             let body = options.httpBody.data(using: .utf8)

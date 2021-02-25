@@ -17,6 +17,7 @@ open class SpokenInstruction: Codable {
         case distanceAlongStep = "distanceAlongGeometry"
         case text = "announcement"
         case ssmlText = "ssmlAnnouncement"
+        case mappyType = "instructionType"
     }
     
     // MARK: Creating a Spoken Instruction
@@ -28,10 +29,30 @@ open class SpokenInstruction: Codable {
      - parameter text: A plain-text representation of the speech-optimized instruction.
      - parameter ssmlText: A formatted representation of the speech-optimized instruction.
      */
-    public init(distanceAlongStep: CLLocationDistance, text: String, ssmlText: String) {
+    public init(distanceAlongStep: CLLocationDistance, text: String, ssmlText: String, mappyType: MappySpokenInstructionType = .maneuver) {
         self.distanceAlongStep = distanceAlongStep
         self.text = text
         self.ssmlText = ssmlText
+        self.mappyType = mappyType
+	}
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(distanceAlongStep, forKey: .distanceAlongStep)
+        try container.encode(text, forKey: .text)
+        try container.encode(ssmlText, forKey: .ssmlText)
+        // Don't encode spoken instruction type for default value
+        if mappyType != .maneuver {
+        	try container.encode(mappyType, forKey: .mappyType)
+        }
+    }
+
+    public required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        distanceAlongStep = try container.decode(CLLocationDistance.self, forKey: .distanceAlongStep)
+        text = try container.decode(String.self, forKey: .text)
+        ssmlText = try container.decodeIfPresent(String.self, forKey: .ssmlText) ?? ""
+        mappyType = (try? container.decodeIfPresent(MappySpokenInstructionType.self, forKey: .mappyType)) ?? .maneuver
     }
     
     // MARK: Timing When to Say the Instruction
@@ -58,12 +79,20 @@ open class SpokenInstruction: Codable {
      This representation is appropriate for speech synthesizers that support the [Speech Synthesis Markup Language](https://en.wikipedia.org/wiki/Speech_Synthesis_Markup_Language) (SSML), such as [Amazon Polly](https://aws.amazon.com/polly/). Numbers and names are marked up to ensure correct pronunciation. For speech synthesizers that lack SSML support, use the `text` property instead.
      */
     public let ssmlText: String
+
+    /**
+     The type of the instruction when returned by the Mappy Directions API.
+
+     The default value for non-Mappy API is .maneuver.
+     */
+    public let mappyType: MappySpokenInstructionType
 }
 
 extension SpokenInstruction: Equatable {
     public static func == (lhs: SpokenInstruction, rhs: SpokenInstruction) -> Bool {
         return lhs.distanceAlongStep == rhs.distanceAlongStep &&
             lhs.text == rhs.text &&
-            lhs.ssmlText == rhs.ssmlText
+            lhs.ssmlText == rhs.ssmlText &&
+            lhs.mappyType == rhs.mappyType
     }
 }

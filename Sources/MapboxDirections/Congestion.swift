@@ -36,4 +36,11 @@ public enum CongestionLevel: String, Codable, CaseIterable {
      Severe congestion levels are conventionally highlighted in red.
      */
     case severe
+
+	/**
+	The road segment has extreme congestion. Traffic is probably completely stopped.
+
+	Extreme congestion levels are conventionally highlighted in black.
+	*/
+	case extreme
 }

@@ -48,6 +48,10 @@ extension CLLocationCoordinate2D {
     internal var requestDescription: String {
         return "\(longitude.rounded(to: 1e6)),\(latitude.rounded(to: 1e6))"
     }
+
+	internal var mappyRequestDescription: String {
+		return String(format: "%.6f,%.6f", arguments: [longitude, latitude])
+	}
 }
 
 #if canImport(CoreLocation)

@@ -39,7 +39,16 @@ public extension VisualInstruction {
          The component bears the name of a place or street.
          */
         case text(text: TextRepresentation)
-        
+
+        /**
+         The component contains a label with associated text and background color informations.
+
+         - parameter text: The component's text.
+         - parameter foregroundColor: The text's color in hex format (ex: "#C9242A")
+         - parameter backgroundColor: The background color to use in the text's label in hex format (ex: "#C9242A")
+         */
+        case coloredText(text: TextRepresentation, foregroundColor: String, backgroundColor: String)
+
         /**
          The component is an image, such as a [route marker](https://en.wikipedia.org/wiki/Highway_shield), with a fallback text representation.
          
@@ -192,6 +201,8 @@ extension VisualInstruction.Component: Codable {
         case text
         case abbreviatedText = "abbr"
         case abbreviatedTextPriority = "abbr_priority"
+        case textForegroundColor = "foreground_color"
+        case textBackgroundColor = "background_color"
         case imageBaseURL
         case imageURL
         case directions
@@ -201,6 +212,7 @@ extension VisualInstruction.Component: Codable {
     enum Kind: String, Codable {
         case delimiter
         case text
+        case coloredText = "colored_label"
         case image = "icon"
         case guidanceView = "guidance-view"
         case exit
@@ -222,6 +234,7 @@ extension VisualInstruction.Component: Codable {
         let text = try container.decode(String.self, forKey: .text)
         let abbreviation = try container.decodeIfPresent(String.self, forKey: .abbreviatedText)
         let abbreviationPriority = try container.decodeIfPresent(Int.self, forKey: .abbreviatedTextPriority)
+
         let textRepresentation = TextRepresentation(text: text, abbreviation: abbreviation, abbreviationPriority: abbreviationPriority)
         
         switch kind {
@@ -229,6 +242,10 @@ extension VisualInstruction.Component: Codable {
             self = .delimiter(text: textRepresentation)
         case .text:
             self = .text(text: textRepresentation)
+        case .coloredText:
+            let foregroundColor = (try? container.decodeIfPresent(String.self, forKey: .textForegroundColor)) ?? ""
+            let backgroundColor = (try? container.decodeIfPresent(String.self, forKey: .textBackgroundColor)) ?? ""
+            self = .coloredText(text: textRepresentation, foregroundColor: foregroundColor, backgroundColor: backgroundColor)
         case .image:
             var imageBaseURL: URL?
             if let imageBaseURLString = try container.decodeIfPresent(String.self, forKey: .imageBaseURL) {
@@ -263,6 +280,11 @@ extension VisualInstruction.Component: Codable {
         case .text(let text):
             try container.encode(Kind.text, forKey: .kind)
             textRepresentation = text
+        case .coloredText(let text, let foregroundColor, let backgroundColor):
+            try container.encode(Kind.coloredText, forKey: .kind)
+        	textRepresentation = text
+            try container.encode(foregroundColor, forKey: .textForegroundColor)
+            try container.encode(backgroundColor, forKey: .textBackgroundColor)
         case .image(let image, let alternativeText):
             try container.encode(Kind.image, forKey: .kind)
             textRepresentation = alternativeText
@@ -312,13 +334,19 @@ extension VisualInstruction.Component: Equatable {
               let .lane(rhsIndications, rhsIsUsable)):
             return lhsIndications == rhsIndications
                 && lhsIsUsable == rhsIsUsable
+        case (let .coloredText(text: lhsText, foregroundColor: lhsForegroundColor, backgroundColor: lhsBackgroundColor),
+              let .coloredText(text: rhsText, foregroundColor: rhsForegroundColor, backgroundColor: rhsBackgroundColor)):
+            return lhsText == rhsText
+                && lhsForegroundColor == rhsForegroundColor
+                && lhsBackgroundColor == rhsBackgroundColor
         case (.delimiter, _),
              (.text, _),
              (.image, _),
              (.exit, _),
              (.exitCode, _),
              (.guidanceView, _),
-             (.lane, _):
+             (.lane, _),
+             (.coloredText, _):
             return false
         }
     }

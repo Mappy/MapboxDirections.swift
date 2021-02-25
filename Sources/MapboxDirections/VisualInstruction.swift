@@ -17,17 +17,19 @@ open class VisualInstruction: Codable {
         case maneuverDirection = "modifier"
         case components
         case finalHeading = "degrees"
+        case exitNumber = "exit-number"
     }
 
     /**
      Initializes a new visual instruction banner object that displays the given information.
      */
-    public init(text: String?, maneuverType: ManeuverType?, maneuverDirection: ManeuverDirection?, components: [Component], degrees: CLLocationDegrees? = nil) {
+    public init(text: String?, maneuverType: ManeuverType?, maneuverDirection: ManeuverDirection?, components: [Component], degrees: CLLocationDegrees? = nil, exitNumber: Int? = nil) {
         self.text = text
         self.maneuverType = maneuverType
         self.maneuverDirection = maneuverDirection
         self.components = components
         self.finalHeading = degrees
+        self.exitNumber = exitNumber
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -37,6 +39,7 @@ open class VisualInstruction: Codable {
         try container.encodeIfPresent(maneuverDirection, forKey: .maneuverDirection)
         try container.encode(components, forKey: .components)
         try container.encodeIfPresent(finalHeading, forKey: .finalHeading)
+		try container.encodeIfPresent(exitNumber, forKey: .exitNumber)
     }
     
     public required init(from decoder: Decoder) throws {
@@ -46,6 +49,7 @@ open class VisualInstruction: Codable {
         maneuverDirection = try container.decodeIfPresent(ManeuverDirection.self, forKey: .maneuverDirection)
         components = try container.decode([Component].self, forKey: .components)
         finalHeading = try container.decodeIfPresent(CLLocationDegrees.self, forKey: .finalHeading)
+        exitNumber = try container.decodeIfPresent(Int.self, forKey: .exitNumber)
     }
     
     // MARK: Displaying the Instruction Text
@@ -82,6 +86,13 @@ open class VisualInstruction: Codable {
      This property is only relevant if the `maneuverType` is any of the following values: `ManeuverType.takeRoundabout`, `ManeuverType.takeRotary`, `ManeuverType.turnAtRoundabout`, `ManeuverType.exitRoundabout`, or `ManeuverType.exitRotary`.
      */
     public var finalHeading: CLLocationDegrees?
+
+    /**
+     The number of exits from the approach to the recommended outlet, including the said outlet.
+
+     This property is only relevant if the `maneuverType` is any of the following values: `ManeuverType.takeRoundabout`, `ManeuverType.takeRotary`, `ManeuverType.turnAtRoundabout`, `ManeuverType.exitRoundabout`, or `ManeuverType.exitRotary`.
+     */
+    public var exitNumber: Int?
 }
 
 extension VisualInstruction: Equatable {
@@ -90,6 +101,7 @@ extension VisualInstruction: Equatable {
             lhs.maneuverType == rhs.maneuverType &&
             lhs.maneuverDirection == rhs.maneuverDirection &&
             lhs.components == rhs.components &&
-            lhs.finalHeading == rhs.finalHeading
+            lhs.finalHeading == rhs.finalHeading &&
+            lhs.exitNumber == rhs.exitNumber
     }
 }

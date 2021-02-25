@@ -14,6 +14,7 @@ public struct RouteResponse {
     public let identifier: String?
     public var routes: [Route]?    
     public let waypoints: [Waypoint]?
+    public let mappyCongestionColors: [String:String]?
     
     public let options: ResponseOptions
     public let credentials: DirectionsCredentials
@@ -36,13 +37,15 @@ extension RouteResponse: Codable {
         case identifier = "uuid"
         case routes
         case waypoints
+        case mappyCongestionColors = "mappy_congestion_colors"
     }
     
-    public init(httpResponse: HTTPURLResponse?, identifier: String? = nil, routes: [Route]? = nil, waypoints: [Waypoint]? = nil, options: ResponseOptions, credentials: DirectionsCredentials) {
+    public init(httpResponse: HTTPURLResponse?, identifier: String? = nil, routes: [Route]? = nil, waypoints: [Waypoint]? = nil, mappyCongestionColors: [String:String]? = nil, options: ResponseOptions, credentials: DirectionsCredentials) {
         self.httpResponse = httpResponse
         self.identifier = identifier
         self.routes = routes
         self.waypoints = waypoints
+        self.mappyCongestionColors = mappyCongestionColors
         self.options = options
         self.credentials = credentials
     }
@@ -127,14 +130,31 @@ extension RouteResponse: Codable {
         } else {
             waypoints = decodedWaypoints
         }
-        
-        if let routes = try container.decodeIfPresent([Route].self, forKey: .routes) {
+
+        if let decodedCongestionColors = try? container.decodeIfPresent([String:String].self, forKey: .mappyCongestionColors) {
+            let congestionColors = decodedCongestionColors.filter { !$0.key.isEmpty && !$0.value.isEmpty }
+            mappyCongestionColors = congestionColors
+        }
+        else {
+            mappyCongestionColors = nil
+        }
+
+        if let routes = try container.decodeIfPresent([MappyRoute].self, forKey: .routes) {
             // Postprocess each route.
             for route in routes {
                 route.routeIdentifier = identifier
                 // Imbue each route’s legs with the waypoints refined above.
                 if let waypoints = waypoints {
                     route.legSeparators = waypoints.filter { $0.separatesLegs }
+                }
+
+                route.congestionColors = mappyCongestionColors
+                if case let .route(options) = options,
+                   let routeOptions = options as? MappyRouteOptions {
+                    let mappyRouteOptions = try? routeOptions.copy()
+                    mappyRouteOptions?.forceBetterRoute = false
+                    mappyRouteOptions?.routeSignature = route.signature
+                    route.mappyRouteOptions = mappyRouteOptions
                 }
             }
             self.routes = routes
@@ -148,6 +168,7 @@ extension RouteResponse: Codable {
         try container.encodeIfPresent(identifier, forKey: .identifier)
         try container.encodeIfPresent(routes, forKey: .routes)
         try container.encodeIfPresent(waypoints, forKey: .waypoints)
+        try container.encodeIfPresent(mappyCongestionColors, forKey: .mappyCongestionColors)
     }
 
 }

@@ -64,7 +64,7 @@ class VisualInstructionsTests: XCTestCase {
         XCTAssert(componentGuidanceViewImage == guideViewComponent)
         let quaternaryInstruction = VisualInstruction(text: "CA01610_1_E", maneuverType: .reachFork, maneuverDirection: .right, components: [guideViewComponent])
         
-        banner = VisualInstructionBanner(distanceAlongStep: 393.3, primary: primaryInstruction, secondary: nil, tertiary: nil, quaternary: quaternaryInstruction, drivingSide: .right)
+        banner = VisualInstructionBanner(distanceAlongStep: 393.3, primary: primaryInstruction, secondary: nil, tertiary: nil, quaternary: quaternaryInstruction, controlZone: nil, drivingSide: .right)
         let encoder = JSONEncoder()
         var encodedData: Data?
         XCTAssertNoThrow(encodedData = try encoder.encode(banner))

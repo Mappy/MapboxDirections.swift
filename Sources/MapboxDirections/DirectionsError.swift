@@ -35,6 +35,10 @@ public enum DirectionsError: LocalizedError {
             self = .unknown(response: response, underlying: error, code: code, message: message)            
         }
     }
+    
+    public init(mappyServerError: MappyServerError, response: URLResponse?, underlyingError error: Error?) {
+        self = .mappy(response: response, underlying: error, serverError: mappyServerError)
+    }
 
     /**
      There is no network connection available to perform the network request.
@@ -110,6 +114,12 @@ public enum DirectionsError: LocalizedError {
      */
     
     case unknown(response: URLResponse?, underlying: Error?, code: String?, message: String?)
+
+    /**
+     Mappy server error case. Look at associated serverError value for more details.
+     */
+
+    case mappy(response: URLResponse?, underlying: Error?, serverError: MappyServerError)
     
     public var failureReason: String? {
         switch self {
@@ -150,6 +160,9 @@ public enum DirectionsError: LocalizedError {
             return message
                 ?? (error as NSError?)?.userInfo[NSLocalizedFailureReasonErrorKey] as? String
                 ?? HTTPURLResponse.localizedString(forStatusCode: (error as NSError?)?.code ?? -1)
+        case let .mappy(response: _, underlying: _, serverError: serverError):
+            let failureReason = "Status: \(serverError.status) - message: \(serverError.message) - id: \(serverError.errorId)"
+            return failureReason
         }
     }
     
@@ -177,6 +190,8 @@ public enum DirectionsError: LocalizedError {
             return "Wait until \(formattedDate) before retrying."
         case let .unknown(_, underlying: error, _, _):
             return (error as NSError?)?.userInfo[NSLocalizedRecoverySuggestionErrorKey] as? String
+        case .mappy:
+            return nil
         }
     }
 }
@@ -210,6 +225,12 @@ extension DirectionsError: Equatable {
                 && lhsUnderlying?.localizedDescription == rhsUnderlying?.localizedDescription
                 && lhsCode == rhsCode
                 && lhsMessage == rhsMessage
+        case (.mappy(let lhsResponse, let lhsUnderlying, let lhsServerError),
+              .mappy(let rhsResponse, let rhsUnderlying, let rhsServerError)):
+            return lhsResponse == rhsResponse
+                && type(of: lhsUnderlying) == type(of: rhsUnderlying)
+                && lhsUnderlying?.localizedDescription == rhsUnderlying?.localizedDescription
+                && lhsServerError == rhsServerError
         default:
             return false
         }
