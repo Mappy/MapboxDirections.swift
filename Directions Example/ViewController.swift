@@ -3,10 +3,6 @@ import CoreLocation
 import MapboxDirections
 import Mapbox
 
-// A Mapbox access token is required to use the Directions API.
-// https://docs.mapbox.com/help/how-mapbox-works/access-tokens/#creating-and-managing-access-tokens
-let MapboxAccessToken = "pk.eyJ1IjoibWFwcHlpb3MiLCJhIjoiY2pqaWh5OGZuMTJ2MzN2cm1heHpmZmVjbCJ9.zT4TP13qJsNthxAUuYMYmg"
-
 class ViewController: UIViewController, MBDrawingViewDelegate {
     @IBOutlet var mapView: MGLMapView!
     var drawingView: MBDrawingView?
@@ -16,9 +12,6 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        assert(MapboxAccessToken != "<# your Mapbox access token #>", "You must set `MapboxAccessToken` to your Mapbox access token.")
-        MGLAccountManager.accessToken = MapboxAccessToken
         
         mapView = MGLMapView(frame: view.bounds)
         mapView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -70,13 +63,17 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
     }
     
     func setupDirections() {
-//        let wp1 = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 38.9131752, longitude: -77.0324047), name: "Mapbox")
-//        let wp2 = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 38.8977, longitude: -77.0365), name: "White House")
-//        wp1.allowsArrivingOnOppositeSide = false
-//        wp2.allowsArrivingOnOppositeSide = false
-//        let options = RouteOptions(waypoints: [wp1, wp2])
-//        options.includesSteps = true
-        
+        let wp1 = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 38.9131752, longitude: -77.0324047), name: "Mapbox")
+        let wp2 = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 38.8977, longitude: -77.0365), name: "White House")
+        let options = RouteOptions(waypoints: [wp1, wp2])
+        let wpError1 = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 48.8579928719904, longitude: 170.35589048867871))
+        let wpError2 = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 48.801659749004, longitude: 2.36325313652446))
+        let optionsError = RouteOptions(waypoints: [wpError1, wpError2])
+        options.includesSteps = true
+        options.routeShapeResolution = .full
+        options.attributeOptions = [.congestionLevel, .maximumSpeedLimit]
+
+        // Mappy
         let makeParisBordeauxWaypoints: (() -> [Waypoint]) = {
             let Paris = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 48.86, longitude: 2.34), name: "Paris")
             Paris.heading = 78.0001
@@ -88,9 +85,9 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
             let arrival = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 49.015516, longitude: 1.184420))
             return [departure, arrival]
         }
-        
-        let makeOptionsWithExplicitParams: (() -> MappyNavigationRouteOptions) = {
-            let options = MappyNavigationRouteOptions(
+
+        let makeOptionsWithExplicitParams: (() -> MappyRouteOptions) = {
+            let options = MappyRouteOptions(
                 waypoints: makeParisBordeauxWaypoints(),
                 provider: "car",
                 routeCalculationType: "fastest",
@@ -105,9 +102,9 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
             options.routeSignature = nil
             return options
         }
-        
-        let makeOptionsWithUntypedQueryParams: (() -> MappyNavigationRouteOptions) = {
-            let options = MappyNavigationRouteOptions(
+
+        let makeOptionsWithUntypedQueryParams: (() -> MappyRouteOptions) = {
+            let options = MappyRouteOptions(
                 waypoints: makeRoundaboutWaypoints(),
                 provider: "car",
                 additionalQueryParams: [
@@ -118,13 +115,13 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
                     "walk_speed": "slow",
                     "bike_speed": "fast",
                     "foo": "bar",
-                    ])
+                ])
             options.shapeFormat = .polyline6
             return options
         }
 
-        let makeRouteUpdateOptions: (() -> MappyNavigationRouteOptions) = {
-            let options = MappyNavigationRouteOptions(
+        let makeRouteUpdateOptions: (() -> MappyRouteOptions) = {
+            let options = MappyRouteOptions(
                 waypoints: [
                     Waypoint(coordinate: CLLocationCoordinate2D(latitude: 48.8502559, longitude: 2.30837619), name: "Paris - Avenue de Ségur"),
                     Waypoint(coordinate: CLLocationCoordinate2D(latitude: 48.8448336, longitude: 2.3193625), name: "Paris - Rue de Vaugirard")
@@ -141,50 +138,57 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
             options.routeSignature = "{\"legs\":[{\"end_offset\":0.0056163842,\"start_offset\":0.9209722214,\"path\":[12500001662182,12500001554967,12500001284146,12500001824262,12500001292524,12500001601838,12500001601837,12500001369147,12500001494157,12500001500045,12500001546884,12500015399002,12500015398980,12500015384328,12500015385901,12500015384739,12500001472033,12500001472034,12500001805334,12500001131745,12500015384156,12500015386598,12500001600626,12500001407018,12500015398972,12500015399733,12500001613011,12500001808104,12500001095874,12500001112472,12500000982166,12500001002638,12500001731391,12500001048324,12500001048796,12500001395539,12500001498399,12500001099033,12500001181500,12500015385877]}]}"
             return options
         }
-        
-        let options = [
+
+        let mappyOptions = [
             makeOptionsWithExplicitParams(),
             makeOptionsWithUntypedQueryParams(),
             makeRouteUpdateOptions()
-            ][2]
-        
-        let useSnap = false
-        Directions(accessToken: "", host: (useSnap ? "routemm.mappysnap.net" : "routemm.mappyrecette.net"))
-//        Directions(accessToken: MapboxAccessToken)
-            .calculate(options) { (waypoints, routes, error) in
-            guard error == nil else {
-                print("Error calculating directions: \(error!)")
-                return
-            }
-            
-            if let route = routes?.first, let leg = route.legs.first {
-                print("Route via \(leg):")
-                
-                let distanceFormatter = LengthFormatter()
-                let formattedDistance = distanceFormatter.string(fromMeters: route.distance)
-                
-                let travelTimeFormatter = DateComponentsFormatter()
-                travelTimeFormatter.unitsStyle = .short
-                let formattedTravelTime = travelTimeFormatter.string(from: route.expectedTravelTime)
-                
-                print("Distance: \(formattedDistance); ETA: \(formattedTravelTime!)")
-                
-                for step in leg.steps {
-                    print("\(step.instructions) [\(step.maneuverType) \(step.maneuverDirection)]")
-                    if step.distance > 0 {
-                        let formattedDistance = distanceFormatter.string(fromMeters: step.distance)
-                        print("— \(step.transportType) for \(formattedDistance) —")
-                    }
-                }
-                
-                if route.coordinateCount > 0 {
-                    // Convert the route’s coordinates into a polyline.
-                    var routeCoordinates = route.coordinates!
-                    let routeLine = MGLPolyline(coordinates: &routeCoordinates, count: route.coordinateCount)
+        ][0]
+
+        let useSnapEnv = false
+        let host = URL(string: (useSnapEnv ? "https://routemm.mappysnap.net" : "https://routemm.mappyrecette.net"))!
+        Directions(credentials: DirectionsCredentials(accessToken: nil, host: host)).calculate(mappyOptions) { (session, result) in
+//        Directions.shared.calculate(options) { (session, result) in
+            switch result {
+            case let .failure(error):
+                print("Error calculating directions: \(error)")
+            case let .success(response):
+                if let route = response.routes?.first, let leg = route.legs.first {
+                    print("Route via \(leg):")
                     
-                    // Add the polyline to the map and fit the viewport to the polyline.
-                    self.mapView.addAnnotation(routeLine)
-                    self.mapView.setVisibleCoordinates(&routeCoordinates, count: route.coordinateCount, edgePadding: .zero, animated: true)
+                    let distanceFormatter = LengthFormatter()
+                    let formattedDistance = distanceFormatter.string(fromMeters: route.distance)
+                    
+                    let travelTimeFormatter = DateComponentsFormatter()
+                    travelTimeFormatter.unitsStyle = .short
+                    let formattedExpectedTravelTime = travelTimeFormatter.string(from: route.expectedTravelTime)
+                    var validTypicalTravelTime = "Not available"
+                    if let typicalTravelTime = route.typicalTravelTime, let formattedTypicalTravelTime = travelTimeFormatter.string(from: typicalTravelTime) {
+                        validTypicalTravelTime = formattedTypicalTravelTime
+                    }
+                    
+                    print("Distance: \(formattedDistance); ETA: \(formattedExpectedTravelTime!); Typical travel time: \(validTypicalTravelTime)")
+                    
+                    for step in leg.steps {
+                        let direction = step.maneuverDirection?.rawValue ?? "none"
+                        print("\(step.instructions) [\(step.maneuverType) \(direction)]")
+                        if step.distance > 0 {
+                            let formattedDistance = distanceFormatter.string(fromMeters: step.distance)
+                            print("— \(step.transportType) for \(formattedDistance) —")
+                        }
+                    }
+                    
+                    if var routeCoordinates = route.shape?.coordinates, routeCoordinates.count > 0 {
+                        // Convert the route’s coordinates into a polyline.
+                        let routeLine = MGLPolyline(coordinates: &routeCoordinates, count: UInt(routeCoordinates.count))
+
+                        // Add the polyline to the map.
+                        self.mapView.addAnnotation(routeLine)
+                        
+                        // Fit the viewport to the polyline.
+                        let camera = self.mapView.cameraThatFitsShape(routeLine, direction: 0, edgePadding: .zero)
+                        self.mapView.setCamera(camera, animated: true)
+                    }
                 }
             }
         }
@@ -204,8 +208,16 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
     }
     
     func drawingView(drawingView: MBDrawingView, didDrawWithPoints points: [CGPoint]) {
+        guard points.count > 0 else { return }
         
-        let coordinates = points.map {
+        let ratio: Double = Double(points.count) / 100.0
+        let keepEvery = Int(ratio.rounded(.up))
+        
+        let abridgedPoints = points.enumerated().compactMap { index, element -> CGPoint? in
+            guard index % keepEvery == 0 else { return nil }
+            return element
+        }
+        let coordinates = abridgedPoints.map {
             mapView.convert($0, toCoordinateFrom: mapView)
         }
         makeMatchRequest(locations: coordinates)
@@ -214,22 +226,32 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
     func makeMatchRequest(locations: [CLLocationCoordinate2D]) {
         let matchOptions = MatchOptions(coordinates: locations)
 
-        Directions(accessToken: MapboxAccessToken).calculate(matchOptions) { (matches, error) in
-            if let error = error {
-                print(error.localizedDescription)
+        Directions.shared.calculate(matchOptions) { (session, result) in
+            
+            switch result {
+            case let .failure(error):
+                let errorString = """
+                ⚠️ Error Enountered. ⚠️
+                Failure Reason: \(error.failureReason ?? "")
+                Recovery Suggestion: \(error.recoverySuggestion ?? "")
+                
+                Technical Details: \(error)
+                """
+                print(errorString)
                 return
+            case let .success(response):
+                guard let matches = response.matches, let match = matches.first else { return }
+                if let annotations = self.mapView.annotations {
+                    self.mapView.removeAnnotations(annotations)
+                }
+                
+                var routeCoordinates = match.shape!.coordinates
+                let coordCount = UInt(routeCoordinates.count)
+                let routeLine = MGLPolyline(coordinates: &routeCoordinates, count: coordCount)
+                self.mapView.addAnnotation(routeLine)
+                self.drawingView?.reset()
             }
-            
-            guard let matches = matches, let match = matches.first else { return }
-            
-            if let annotations = self.mapView.annotations {
-                self.mapView.removeAnnotations(annotations)
-            }
-            
-            var routeCoordinates = match.coordinates!
-            let routeLine = MGLPolyline(coordinates: &routeCoordinates, count: match.coordinateCount)
-            self.mapView.addAnnotation(routeLine)
-            self.drawingView?.reset()
+
         }
     }
 }

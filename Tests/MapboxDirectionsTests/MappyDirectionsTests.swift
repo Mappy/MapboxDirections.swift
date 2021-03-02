@@ -1,31 +1,33 @@
 import XCTest
 @testable import MapboxDirections
 
-
 class MappyDirectionsTests: XCTestCase {
-    
-    override func setUp() {
-        super.setUp()
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-    }
-    
-    override func tearDown() {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-        super.tearDown()
-    }
-    
-    func testMappyErrorParsing() {
-        let error: NSError? = nil
-        var errorJson: [String: Any] = ["status": 400,
-                                        "message": "No QID provided (None)"]
-        var resultError = Directions.informativeMappyError(describing: errorJson, underlyingError: error)
-        XCTAssertEqual(resultError.localizedFailureReason, "Status: 400 - message: No QID provided (None) - id: no id")
-        
-        errorJson = ["status": 502,
+    func testDecoding() {
+        var errorJSON: [String: Any] = [
+            "status": 400,
+            "message": "No QID provided (None)"
+        ]
+        var errorData = try! JSONSerialization.data(withJSONObject: errorJSON, options: [])
+        var mappyServerError: MappyServerError?
+        XCTAssertNoThrow(mappyServerError = try JSONDecoder().decode(MappyServerError.self, from: errorData))
+        XCTAssertNotNil(mappyServerError)
+        if let serverError = mappyServerError {
+            XCTAssertEqual(serverError.status, 400)
+            XCTAssertEqual(serverError.message, errorJSON["message"] as! String)
+            XCTAssertEqual(serverError.errorId, "no id")
+        }
+
+        errorJSON = ["status": 502,
                      "message": "Could not find GPS initial route",
                      "id": "GPS:find_initial_route"]
-        resultError = Directions.informativeMappyError(describing: errorJson, underlyingError: error)
-        XCTAssertEqual(resultError.localizedFailureReason, "Status: 502 - message: Could not find GPS initial route - id: GPS:find_initial_route")
+        errorData = try! JSONSerialization.data(withJSONObject: errorJSON, options: [])
+        XCTAssertNoThrow(mappyServerError = try JSONDecoder().decode(MappyServerError.self, from: errorData))
+        XCTAssertNotNil(mappyServerError)
+        if let serverError = mappyServerError {
+            XCTAssertEqual(serverError.status, 502)
+            XCTAssertEqual(serverError.message, errorJSON["message"] as! String)
+            XCTAssertEqual(serverError.errorId, errorJSON["id"] as! String)
+        }
     }
-    
+
 }
