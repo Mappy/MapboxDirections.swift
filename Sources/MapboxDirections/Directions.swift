@@ -570,7 +570,7 @@ open class Directions: NSObject {
             request.httpMethod = "POST"
             request.httpBody = data
         }
-        else if getURL.absoluteString.count > MaximumURLLength {
+        else if getURL.absoluteString.count > MaximumURLLength && !(options is MappyRouteOptions) {
             request.url = url(forCalculating: options, httpMethod: "POST")
             
             let body = options.httpBody.data(using: .utf8)

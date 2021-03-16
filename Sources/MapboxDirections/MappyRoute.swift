@@ -27,11 +27,6 @@ public class MappyRoute: Route {
         case isInLowEmissionZone = "route_in_low_emission_zone"
     }
 
-    /**
-     `MappyRouteOptions` used to create the directions request.
-     */
-    public internal(set) var mappyRouteOptions: MappyRouteOptions?
-
     public let routeType: MappyRouteType
     public let signature: String
     public let isInLowEmissionZone: Bool
@@ -54,7 +49,6 @@ public class MappyRoute: Route {
         signature = try container.decodeIfPresent(String.self, forKey: .signature) ?? ""
         isInLowEmissionZone = try container.decodeIfPresent(Bool.self, forKey: .isInLowEmissionZone) ?? false
         congestionColors = nil // assigned from parsing of RouteResponse
-        mappyRouteOptions = nil // assigned after RouteResponse as been parsed
 
         try super.init(from: decoder)
     }

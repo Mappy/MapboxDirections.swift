@@ -131,9 +131,20 @@ extension RouteResponse: Codable {
             waypoints = decodedWaypoints
         }
 
-        if let decodedCongestionColors = try? container.decodeIfPresent([String:String].self, forKey: .mappyCongestionColors) {
-            let congestionColors = decodedCongestionColors.filter { !$0.key.isEmpty && !$0.value.isEmpty }
-            mappyCongestionColors = congestionColors
+        if let decodedCongestionColors = try? container.decodeIfPresent([[String:String]].self, forKey: .mappyCongestionColors) {
+            var congestionColors = [String:String]()
+            for decodedCongestionColor in decodedCongestionColors {
+                if let congestion = decodedCongestionColor["label"],
+                   let color = decodedCongestionColor["color"] {
+                    congestionColors[congestion] = color
+                }
+            }
+            if !congestionColors.isEmpty {
+            	mappyCongestionColors = congestionColors
+            }
+            else {
+                mappyCongestionColors = nil
+            }
         }
         else {
             mappyCongestionColors = nil
@@ -149,13 +160,6 @@ extension RouteResponse: Codable {
                 }
 
                 route.congestionColors = mappyCongestionColors
-                if case let .route(options) = options,
-                   let routeOptions = options as? MappyRouteOptions {
-                    let mappyRouteOptions = try? routeOptions.copy()
-                    mappyRouteOptions?.forceBetterRoute = false
-                    mappyRouteOptions?.routeSignature = route.signature
-                    route.mappyRouteOptions = mappyRouteOptions
-                }
             }
             self.routes = routes
         } else {

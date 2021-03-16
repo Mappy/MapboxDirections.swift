@@ -18,11 +18,11 @@ public enum MappyBikeSpeed: String, Codable {
     case slow, normal, fast
 }
 
-public class MappyRouteOptions: RouteOptions {
+open class MappyRouteOptions: RouteOptions {
     // MARK: - Initializers
 
     /**
-     Initializes a navigation route options object for routes between the given waypoints
+     Initializes a route options object for routes between the given waypoints
 
      The calculated route will be optimized for the given provider and respect the route calculation type.
      */
@@ -37,7 +37,9 @@ public class MappyRouteOptions: RouteOptions {
     }
 
     /**
-     Initializes a navigation route options object for routes between the given waypoints.
+     Initializes a route options object for routes between the given waypoints.
+
+     The calculated route will be optimized for the given provider and respect the route calculation type.
 
      Known options will be pulled from additionalQueryParams and assigned to their respective properties,
      other keys present in the dictionnary will be sent to the API as URL query parameters.
@@ -71,18 +73,12 @@ public class MappyRouteOptions: RouteOptions {
     }
 
     public required init(waypoints: [Waypoint], profileIdentifier: DirectionsProfileIdentifier?) {
-        self.provider = ""
-        self.routeCalculationType = ""
-        self.qid = ""
-        self.additionalQueryParams = [String:String]()
-
-        assertionFailure("Please use either init(waypoints:provider:routeCalculationType:qid:) or init(waypoints:provider:additionalQueryParams:) to create a MappyRouteOptions")
-        super.init(waypoints: waypoints, profileIdentifier: profileIdentifier)
+        fatalError("Please use either init(waypoints:provider:routeCalculationType:qid:) or init(waypoints:provider:additionalQueryParams:) to create a MappyRouteOptions")
     }
 
     #if canImport(CoreLocation)
     /**
-     Initializes a navigation route options object for routes between the given locations and an optional profile identifier optimized for navigation.
+     Initializes a route options object for routes between the given locations.
      */
     public convenience init(locations: [CLLocation], provider: String, routeCalculationType: String, qid: String) {
         let waypoints = locations.map { Waypoint(location: $0) }
@@ -91,7 +87,7 @@ public class MappyRouteOptions: RouteOptions {
     #endif
 
     /**
-     Initializes a route options object for routes between the given geographic coordinates and an optional profile identifier optimized for navigation.
+     Initializes a route options object for routes between the given geographic coordinates.
      */
     public convenience init(coordinates: [CLLocationCoordinate2D], provider: String, routeCalculationType: String, qid: String) {
         let waypoints = coordinates.map { Waypoint(coordinate: $0) }
@@ -141,7 +137,7 @@ public class MappyRouteOptions: RouteOptions {
         try container.encodeIfPresent(motorbikeVehicule, forKey: .motorbikeVehicule)
         try container.encodeIfPresent(walkSpeed, forKey: .walkSpeed)
         try container.encodeIfPresent(bikeSpeed, forKey: .bikeSpeed)
-        // Don't encode forceBetterRoute debug parameter 
+        try container.encodeIfPresent(forceBetterRoute, forKey: .forceBetterRoute)
 
         try super.encode(to: encoder)
     }
@@ -161,12 +157,6 @@ public class MappyRouteOptions: RouteOptions {
         forceBetterRoute = try container.decodeIfPresent(Bool.self, forKey: .forceBetterRoute) ?? false
 
         try super.init(from: decoder)
-    }
-
-    func copy() throws -> MappyRouteOptions {
-        let data = try JSONEncoder().encode(self)
-        let copy = try JSONDecoder().decode(MappyRouteOptions.self, from: data)
-        return copy
     }
 
     // MARK: - Properties
