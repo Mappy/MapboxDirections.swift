@@ -23,6 +23,13 @@ open class RouteLeg: Codable {
         case annotation
         case administrativeRegions = "admins"
         case incidents
+        case polylineStyle = "polyline_style"
+    }
+    
+    public enum PolylineStyle: String, Codable {
+        case solid
+        case dashed
+        case dotted
     }
     
     // MARK: Creating a Leg
@@ -36,18 +43,20 @@ open class RouteLeg: Codable {
      - parameter typicalTravelTime: The route leg’s typical travel time, measured in seconds.
      - parameter profileIdentifier: The primary mode of transportation for the route leg.
      */
-    public init(steps: [RouteStep], name: String, distance: CLLocationDistance, expectedTravelTime: TimeInterval, typicalTravelTime: TimeInterval? = nil, profileIdentifier: DirectionsProfileIdentifier) {
+    public init(steps: [RouteStep], name: String, distance: CLLocationDistance, expectedTravelTime: TimeInterval, typicalTravelTime: TimeInterval? = nil, profileIdentifier: DirectionsProfileIdentifier, polylineStyle: PolylineStyle? = nil) {
         self.steps = steps
         self.name = name
         self.distance = distance
         self.expectedTravelTime = expectedTravelTime
         self.typicalTravelTime = typicalTravelTime
         self.profileIdentifier = profileIdentifier
+        self.polylineStyle = polylineStyle
         
         segmentDistances = nil
         expectedSegmentTravelTimes = nil
         segmentSpeeds = nil
         segmentCongestionLevels = nil
+        segmentPolylineColors = nil
     }
     
     /**
@@ -64,6 +73,7 @@ open class RouteLeg: Codable {
         distance = try container.decode(CLLocationDistance.self, forKey: .distance)
         expectedTravelTime = try container.decode(TimeInterval.self, forKey: .expectedTravelTime)
         typicalTravelTime = try container.decodeIfPresent(TimeInterval.self, forKey: .typicalTravelTime)
+        polylineStyle = try container.decodeIfPresent(PolylineStyle.self, forKey: .polylineStyle)
         
         if let profileIdentifier = try container.decodeIfPresent(DirectionsProfileIdentifier.self, forKey: .profileIdentifier) {
             self.profileIdentifier = profileIdentifier
@@ -98,6 +108,7 @@ open class RouteLeg: Codable {
         try container.encode(distance, forKey: .distance)
         try container.encode(expectedTravelTime, forKey: .expectedTravelTime)
         try container.encodeIfPresent(typicalTravelTime, forKey: .typicalTravelTime)
+        try container.encodeIfPresent(polylineStyle, forKey: .polylineStyle)
         try container.encode(profileIdentifier, forKey: .profileIdentifier)
         
         let attributes = self.attributes
@@ -218,6 +229,11 @@ open class RouteLeg: Codable {
     open var segmentMaximumSpeedLimits: [Measurement<UnitSpeed>?]?
     
     /**
+     An array containing the color along each road segment in the route leg geometry.
+     */
+    open var segmentPolylineColors: [String]?
+    
+    /**
      The full collection of attributes along the leg.
      */
     var attributes: Attributes {
@@ -226,7 +242,8 @@ open class RouteLeg: Codable {
                               expectedSegmentTravelTimes: expectedSegmentTravelTimes,
                               segmentSpeeds: segmentSpeeds,
                               segmentCongestionLevels: segmentCongestionLevels,
-                              segmentMaximumSpeedLimits: segmentMaximumSpeedLimits)
+                              segmentMaximumSpeedLimits: segmentMaximumSpeedLimits,
+                              segmentPolylineColors: segmentPolylineColors)
         }
         set {
             segmentDistances = newValue.segmentDistances
@@ -234,6 +251,7 @@ open class RouteLeg: Codable {
             segmentSpeeds = newValue.segmentSpeeds
             segmentCongestionLevels = newValue.segmentCongestionLevels
             segmentMaximumSpeedLimits = newValue.segmentMaximumSpeedLimits
+            segmentPolylineColors = newValue.segmentPolylineColors
         }
     }
     
@@ -306,6 +324,11 @@ open class RouteLeg: Codable {
      */
     open var typicalTravelTime: TimeInterval?
     
+    /**
+     A string containing the polyline style for the leg: solid / dashed / dotted
+     */
+    open var polylineStyle: PolylineStyle?
+    
     // MARK: Reproducing the Route
     
     /**
@@ -326,10 +349,12 @@ extension RouteLeg: Equatable {
             lhs.segmentSpeeds == rhs.segmentSpeeds &&
             lhs.segmentCongestionLevels == rhs.segmentCongestionLevels &&
             lhs.segmentMaximumSpeedLimits == rhs.segmentMaximumSpeedLimits &&
+            lhs.segmentPolylineColors == rhs.segmentPolylineColors &&
             lhs.name == rhs.name &&
             lhs.distance == rhs.distance &&
             lhs.expectedTravelTime == rhs.expectedTravelTime &&
             lhs.typicalTravelTime == rhs.typicalTravelTime &&
+            lhs.polylineStyle == rhs.polylineStyle &&
             lhs.profileIdentifier == rhs.profileIdentifier
     }
 }
