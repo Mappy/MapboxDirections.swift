@@ -56,6 +56,12 @@ extension RouteLeg {
          This property is set if the `RouteOptions.attributeOptions` property contains `AttributeOptions.maximumSpeedLimit`.
          */
         public var segmentMaximumSpeedLimits: [Measurement<UnitSpeed>?]?
+        
+        /**
+         An array containing the color along each road segment in the route leg geometry.
+         */
+        public var segmentPolylineColors: [String]?
+        
     }
 }
 
@@ -66,6 +72,7 @@ extension RouteLeg.Attributes: Codable {
         case segmentSpeeds = "speed"
         case segmentCongestionLevels = "congestion"
         case segmentMaximumSpeedLimits = "maxspeed"
+        case segmentPolylineColors = "polyline_color"
     }
     
     public init(from decoder: Decoder) throws {
@@ -75,6 +82,7 @@ extension RouteLeg.Attributes: Codable {
         expectedSegmentTravelTimes = try container.decodeIfPresent([TimeInterval].self, forKey: .expectedSegmentTravelTimes)
         segmentSpeeds = try container.decodeIfPresent([LocationSpeed].self, forKey: .segmentSpeeds)
         segmentCongestionLevels = try container.decodeIfPresent([CongestionLevel].self, forKey: .segmentCongestionLevels)
+        segmentPolylineColors = try container.decodeIfPresent([String].self, forKey: .segmentPolylineColors)
         
         if let speedLimitDescriptors = try container.decodeIfPresent([SpeedLimitDescriptor].self, forKey: .segmentMaximumSpeedLimits) {
             segmentMaximumSpeedLimits = speedLimitDescriptors.map { Measurement<UnitSpeed>(speedLimitDescriptor: $0) }
@@ -90,6 +98,7 @@ extension RouteLeg.Attributes: Codable {
         try container.encodeIfPresent(expectedSegmentTravelTimes, forKey: .expectedSegmentTravelTimes)
         try container.encodeIfPresent(segmentSpeeds, forKey: .segmentSpeeds)
         try container.encodeIfPresent(segmentCongestionLevels, forKey: .segmentCongestionLevels)
+        try container.encodeIfPresent(segmentPolylineColors, forKey: .segmentPolylineColors)
         
         if let speedLimitDescriptors = segmentMaximumSpeedLimits?.map({ SpeedLimitDescriptor(speed: $0) }) {
             try container.encode(speedLimitDescriptors, forKey: .segmentMaximumSpeedLimits)
@@ -104,6 +113,7 @@ extension RouteLeg.Attributes: Codable {
             expectedSegmentTravelTimes == nil &&
             segmentSpeeds == nil &&
             segmentCongestionLevels == nil &&
-            segmentMaximumSpeedLimits == nil
+            segmentMaximumSpeedLimits == nil &&
+            segmentPolylineColors == nil
     }
 }
