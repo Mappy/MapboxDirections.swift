@@ -4,9 +4,9 @@ import Foundation
  Information about an error that occured on Mappy servers while calculating directions.
  */
 public struct MappyServerError: Decodable {
-    let errorId: String
-    let message: String
-    let status: Int
+    public let errorId: String
+    public let message: String
+    public let status: Int
 
     enum CodingKeys: String, CodingKey {
         case errorId = "id"
