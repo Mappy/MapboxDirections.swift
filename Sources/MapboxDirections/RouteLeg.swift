@@ -24,6 +24,7 @@ open class RouteLeg: Codable {
         case administrativeRegions = "admins"
         case incidents
         case polylineStyle = "polyline_style"
+        case provider
     }
     
     public enum PolylineStyle: String, Codable {
@@ -43,7 +44,7 @@ open class RouteLeg: Codable {
      - parameter typicalTravelTime: The route leg’s typical travel time, measured in seconds.
      - parameter profileIdentifier: The primary mode of transportation for the route leg.
      */
-    public init(steps: [RouteStep], name: String, distance: CLLocationDistance, expectedTravelTime: TimeInterval, typicalTravelTime: TimeInterval? = nil, profileIdentifier: DirectionsProfileIdentifier, polylineStyle: PolylineStyle? = nil) {
+    public init(steps: [RouteStep], name: String, distance: CLLocationDistance, expectedTravelTime: TimeInterval, typicalTravelTime: TimeInterval? = nil, profileIdentifier: DirectionsProfileIdentifier, polylineStyle: PolylineStyle? = nil, provider: String? = nil) {
         self.steps = steps
         self.name = name
         self.distance = distance
@@ -51,6 +52,7 @@ open class RouteLeg: Codable {
         self.typicalTravelTime = typicalTravelTime
         self.profileIdentifier = profileIdentifier
         self.polylineStyle = polylineStyle
+        self.provider = provider
         
         segmentDistances = nil
         expectedSegmentTravelTimes = nil
@@ -74,6 +76,7 @@ open class RouteLeg: Codable {
         expectedTravelTime = try container.decode(TimeInterval.self, forKey: .expectedTravelTime)
         typicalTravelTime = try container.decodeIfPresent(TimeInterval.self, forKey: .typicalTravelTime)
         polylineStyle = try container.decodeIfPresent(PolylineStyle.self, forKey: .polylineStyle)
+        provider = try container.decodeIfPresent(String.self, forKey: .provider)
         
         if let profileIdentifier = try container.decodeIfPresent(DirectionsProfileIdentifier.self, forKey: .profileIdentifier) {
             self.profileIdentifier = profileIdentifier
@@ -109,6 +112,7 @@ open class RouteLeg: Codable {
         try container.encode(expectedTravelTime, forKey: .expectedTravelTime)
         try container.encodeIfPresent(typicalTravelTime, forKey: .typicalTravelTime)
         try container.encodeIfPresent(polylineStyle, forKey: .polylineStyle)
+        try container.encodeIfPresent(provider, forKey: .provider)
         try container.encode(profileIdentifier, forKey: .profileIdentifier)
         
         let attributes = self.attributes
@@ -329,6 +333,11 @@ open class RouteLeg: Codable {
      */
     open var polylineStyle: PolylineStyle?
     
+    /**
+     A string containing the provider for the leg, for example: car, bike, etc ..
+     */
+    open var provider: String?
+    
     // MARK: Reproducing the Route
     
     /**
@@ -355,6 +364,7 @@ extension RouteLeg: Equatable {
             lhs.expectedTravelTime == rhs.expectedTravelTime &&
             lhs.typicalTravelTime == rhs.typicalTravelTime &&
             lhs.polylineStyle == rhs.polylineStyle &&
+            lhs.provider == rhs.provider &&
             lhs.profileIdentifier == rhs.profileIdentifier
     }
 }
