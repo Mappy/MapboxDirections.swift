@@ -80,6 +80,13 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
             let Bordeaux = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 44.845177, longitude: -0.471071), name: "Bordeaux")
             return [Paris, Bordeaux]
         }
+        let makeMultiStopsWaypoint: (() -> [Waypoint]) = {
+            let Nation = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 48.848812, longitude: 2.395277), name: "Nation")
+            let Bastille = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 48.853316, longitude: 2.369254), name: "Bastille")
+            let Opera = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 48.870733, longitude: 2.332281), name: "Opéra")
+            let Invalides = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 48.857437, longitude: 2.312888), name: "Invalides")
+            return [Nation, Bastille, Opera, Invalides]
+        }
         let makeRoundaboutWaypoints: (() -> [Waypoint]) = {
             let departure = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 49.013763, longitude: 1.195359))
             let arrival = Waypoint(coordinate: CLLocationCoordinate2D(latitude: 49.015516, longitude: 1.184420))
@@ -89,14 +96,12 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
         let makeOptionsWithExplicitParams: (() -> MappyRouteOptions) = {
             let options = MappyRouteOptions(
                 waypoints: makeParisBordeauxWaypoints(),
-                provider: "car",
-                routeCalculationType: "fastest",
-                qid: "1ad02a47-0e87-48f4-d190-a794fbbb6aac")
+                providers: ["car"],
+                routeTypes: ["fastest"],
+                qid: "demoapp-0e87-48f4-d190-a794fbbb6aac")
             options.shapeFormat = .polyline6
             options.carVehicle = "comcar"
             options.motorbikeVehicule = "moto125"
-            options.walkSpeed = .slow
-            options.bikeSpeed = .fast
 //            options.includesAlternativeRoutes = true
 //            options.forceBetterRoute = true
             options.routeSignature = nil
@@ -106,10 +111,10 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
         let makeOptionsWithUntypedQueryParams: (() -> MappyRouteOptions) = {
             let options = MappyRouteOptions(
                 waypoints: makeRoundaboutWaypoints(),
-                provider: "car",
+                providers: "car",
                 additionalQueryParams: [
                     "route_type": "fastest",
-                    "qid": "1ad02a47-0e87-48f4-d190-a794fbbb6aac",
+                    "qid": "demoapp-0e87-48f4-d190-a794fbbb6aac",
                     "vehicle": "comcar",
                     "motorbike_vehicle": "moto125",
                     "walk_speed": "slow",
@@ -126,37 +131,52 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
                     Waypoint(coordinate: CLLocationCoordinate2D(latitude: 48.8502559, longitude: 2.30837619), name: "Paris - Avenue de Ségur"),
                     Waypoint(coordinate: CLLocationCoordinate2D(latitude: 48.8448336, longitude: 2.3193625), name: "Paris - Rue de Vaugirard")
                 ],
-                provider: "car",
-                routeCalculationType: "fastest",
-                qid: "1ad02a47-0e87-48f4-d190-a794fbbb6aac")
+                providers: ["car"],
+                routeTypes: ["fastest"],
+                qid: "demoapp-0e87-48f4-d190-a794fbbb6aac")
             options.shapeFormat = .polyline6
             options.carVehicle = "comcar"
             options.motorbikeVehicule = "moto125"
             options.walkSpeed = .slow
             options.bikeSpeed = .fast
             options.includesAlternativeRoutes = true
-            options.routeSignature = "{\"legs\":[{\"end_offset\":0.0056163842,\"start_offset\":0.9209722214,\"path\":[12500001662182,12500001554967,12500001284146,12500001824262,12500001292524,12500001601838,12500001601837,12500001369147,12500001494157,12500001500045,12500001546884,12500015399002,12500015398980,12500015384328,12500015385901,12500015384739,12500001472033,12500001472034,12500001805334,12500001131745,12500015384156,12500015386598,12500001600626,12500001407018,12500015398972,12500015399733,12500001613011,12500001808104,12500001095874,12500001112472,12500000982166,12500001002638,12500001731391,12500001048324,12500001048796,12500001395539,12500001498399,12500001099033,12500001181500,12500015385877]}]}"
+            options.routeSignature = "{\"legs\":[{\"start_offset\":0.9680011903,\"end_offset\":0.0060255587,\"path\":[12500001793085,12500001598647,12500001849735,12500001683156,12500001705281,12500001176665,12500019512298,12500019512297,12500001134529,12500001601838,12500001601837,12500001585450,12500001748458,12500001846544,12500001507086,12500015400135,12500015399290,12500001546884,12500015399002,12500015398980,12500015384328,12500015385901,12500015384739,12500001472033,12500001472034,12500001805334,12500001131745,12500015384156,12500015386598,12500001600626,12500001407018,12500015398972,12500015399733,12500001613011,12500001808104,12500001095874,12500001112472,12500000982166,12500001002638,12500001731391,12500001048324,12500019166160,12500019154732,12500001395539,12500001498399,12500001099033,12500001181500,12500015385877]}]}"
+            return options
+        }
+
+        let makeMultiProvidersOptions: (() -> MappyRouteOptions) = {
+            let options = MappyRouteOptions(
+                waypoints: makeMultiStopsWaypoint(),
+                providers: ["walk", "bike", "bike"],
+                routeTypes: ["", "shortest", "bicycle_friendly"],
+                qid: "demoapp-0e87-48f4-d190-a794fbbb6aac")
+            options.shapeFormat = .polyline6
+            options.walkSpeed = .fast
+            options.bikeSpeed = .normal
             return options
         }
 
         let mappyOptions = [
             makeOptionsWithExplicitParams(),
             makeOptionsWithUntypedQueryParams(),
-            makeRouteUpdateOptions()
-        ][0]
+            makeRouteUpdateOptions(),
+            makeMultiProvidersOptions()
+        ][3]
 
-        let useSnapEnv = false
-        let host = URL(string: (useSnapEnv ? "https://routemm.mappysnap.net" : "https://routemm.mappyrecette.net"))!
+        let useSnapEnv = true
+        let host = URL(string: (useSnapEnv ? "https://routemm-route-2439.k8s.mappysnap.com" : "https://routemm.mappyrecette.net"))!
         Directions(credentials: DirectionsCredentials(accessToken: nil, host: host)).calculate(mappyOptions) { (session, result) in
 //        Directions.shared.calculate(options) { (session, result) in
             switch result {
             case let .failure(error):
                 print("Error calculating directions: \(error)")
             case let .success(response):
-                if let route = response.routes?.first, let leg = route.legs.first {
-                    print("Route via \(leg):")
+                if let route = response.routes?.first {
+                    for leg in route.legs {
+                    print("\nRoute via \(leg):")
                     
                     let distanceFormatter = LengthFormatter()
+                    distanceFormatter.numberFormatter.locale = Locale(identifier: "fr_FR")
                     let formattedDistance = distanceFormatter.string(fromMeters: route.distance)
                     
                     let travelTimeFormatter = DateComponentsFormatter()
@@ -176,6 +196,7 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
                             let formattedDistance = distanceFormatter.string(fromMeters: step.distance)
                             print("— \(step.transportType) for \(formattedDistance) —")
                         }
+                    }
                     }
                     
                     if var routeCoordinates = route.shape?.coordinates, routeCoordinates.count > 0 {
