@@ -549,6 +549,12 @@ open class Directions: NSObject {
         let unparameterizedURL = URL(string: includesQuery ? options.path : options.abridgedPath, relativeTo: credentials.host)!
         var components = URLComponents(url: unparameterizedURL, resolvingAgainstBaseURL: true)!
         components.queryItems = params
+        // TODO: Remove when server accepts non encoded ";" as valid value separator inside query items
+        // and encoded ";" as valid value separator inside a path items
+        let forceEncodedQuery = components.url!.query?.replacingOccurrences(of: ";", with: "%3B")
+        let forceUnncodedPath = components.url!.path.replacingOccurrences(of: "%3B", with: ";")
+        components.percentEncodedQuery = forceEncodedQuery
+        components.percentEncodedPath = forceUnncodedPath
         return components.url!
     }
     
