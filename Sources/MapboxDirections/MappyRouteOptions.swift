@@ -26,9 +26,9 @@ open class MappyRouteOptions: RouteOptions {
 
      The calculated route will be optimized for the given provider and respect the route calculation type.
      */
-    public init(waypoints: [Waypoint], provider: String, routeCalculationType: String, qid: String) {
-        self.provider = provider
-        self.routeCalculationType = routeCalculationType
+    public init(waypoints: [Waypoint], providers: [String], routeTypes: [String], qid: String) {
+        self.providers = providers
+        self.routeTypes = routeTypes
         self.qid = qid
         self.additionalQueryParams = [String:String]()
 
@@ -44,10 +44,10 @@ open class MappyRouteOptions: RouteOptions {
      Known options will be pulled from additionalQueryParams and assigned to their respective properties,
      other keys present in the dictionnary will be sent to the API as URL query parameters.
      */
-    public init(waypoints: [Waypoint], provider: String, additionalQueryParams params: [String:String]) {
-        self.provider = provider
+    public init(waypoints: [Waypoint], providers: String, additionalQueryParams params: [String:String]) {
+        self.providers = providers.components(separatedBy: ";")
 
-        self.routeCalculationType = params["route_type"] ?? ""
+        self.routeTypes = params["route_type"]?.components(separatedBy: ";") ?? []
         self.qid = params["qid"] ?? ""
         self.carVehicle = params["vehicle"]
         self.motorbikeVehicule = params["motorbike_vehicle"]
@@ -73,25 +73,25 @@ open class MappyRouteOptions: RouteOptions {
     }
 
     public required init(waypoints: [Waypoint], profileIdentifier: DirectionsProfileIdentifier?) {
-        fatalError("Please use either init(waypoints:provider:routeCalculationType:qid:) or init(waypoints:provider:additionalQueryParams:) to create a MappyRouteOptions")
+        fatalError("Please use either init(waypoints:providers:routeTypes:qid:) or init(waypoints:providers:additionalQueryParams:) to create a MappyRouteOptions")
     }
 
     #if canImport(CoreLocation)
     /**
      Initializes a route options object for routes between the given locations.
      */
-    public convenience init(locations: [CLLocation], provider: String, routeCalculationType: String, qid: String) {
+    public convenience init(locations: [CLLocation], providers: [String], routeTypes: [String], qid: String) {
         let waypoints = locations.map { Waypoint(location: $0) }
-        self.init(waypoints: waypoints, provider: provider, routeCalculationType: routeCalculationType, qid: qid)
+        self.init(waypoints: waypoints, providers: providers, routeTypes: routeTypes, qid: qid)
     }
     #endif
 
     /**
      Initializes a route options object for routes between the given geographic coordinates.
      */
-    public convenience init(coordinates: [CLLocationCoordinate2D], provider: String, routeCalculationType: String, qid: String) {
+    public convenience init(coordinates: [CLLocationCoordinate2D], providers: [String], routeTypes: [String], qid: String) {
         let waypoints = coordinates.map { Waypoint(coordinate: $0) }
-        self.init(waypoints: waypoints, provider: provider, routeCalculationType: routeCalculationType, qid: qid)
+        self.init(waypoints: waypoints, providers: providers, routeTypes: routeTypes, qid: qid)
     }
 
     private func commonInit() {
@@ -113,8 +113,8 @@ open class MappyRouteOptions: RouteOptions {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case provider
-        case routeCalculationType
+        case providers
+        case routeTypes
         case qid
         case additionalQueryParams
         case routeSignature
@@ -128,8 +128,8 @@ open class MappyRouteOptions: RouteOptions {
     public override func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
-        try container.encode(provider, forKey: .provider)
-        try container.encode(routeCalculationType, forKey: .routeCalculationType)
+        try container.encode(providers, forKey: .providers)
+        try container.encode(routeTypes, forKey: .routeTypes)
         try container.encode(qid, forKey: .qid)
         try container.encode(additionalQueryParams, forKey: .additionalQueryParams)
         try container.encodeIfPresent(routeSignature, forKey: .routeSignature)
@@ -145,8 +145,8 @@ open class MappyRouteOptions: RouteOptions {
     public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
-        provider = try container.decode(String.self, forKey: .provider)
-        routeCalculationType = try container.decode(String.self, forKey: .routeCalculationType)
+        providers = try container.decode([String].self, forKey: .providers)
+        routeTypes = try container.decode([String].self, forKey: .routeTypes)
         qid = try container.decode(String.self, forKey: .qid)
         additionalQueryParams = try container.decode(Dictionary<String, String>.self, forKey: .additionalQueryParams)
         routeSignature = try container.decodeIfPresent(String.self, forKey: .routeSignature)
@@ -164,14 +164,19 @@ open class MappyRouteOptions: RouteOptions {
     public let apiVersion: String = "1.0"
 
     /**
-     Route provider.
+     The providers used to calculate the itinerary of each leg of the route.
+
+     One value per leg must be provided (N -1 values for N waypoints).
      */
-    open var provider: String
+    open var providers: [String]
 
     /**
-     Type of metric to use to calculate the itineary.
+     Which type of itinerary should be calculated for each leg of the route.
+
+     The acceptable values depend on the provider specified for the respective leg.
+     One value per route leg must be provided (N -1 values for N waypoints).
      */
-    open var routeCalculationType: String
+    open var routeTypes: [String]
 
     /**
      QID used in initial transport/routes requests.
@@ -218,7 +223,8 @@ open class MappyRouteOptions: RouteOptions {
     // MARK: - Overrides
 
     internal override var abridgedPath: String {
-        return "gps/\(apiVersion)/\(provider)"
+        let providers = self.providers.joined(separator: ";")
+        return "gps/\(apiVersion)/\(providers)"
     }
 
     /**
@@ -232,6 +238,10 @@ open class MappyRouteOptions: RouteOptions {
         return waypoints.map { $0.coordinate.mappyRequestDescription }.joined(separator: ";")
     }
 
+    internal override var waypointNames: String? {
+        return waypoints.map({ $0.name ?? "" }).joined(separator: ";")
+    }
+
     /**
      An array of URL parameters to include in the request URL.
      */
@@ -240,7 +250,7 @@ open class MappyRouteOptions: RouteOptions {
             URLQueryItem(name: "geometries", value: String(describing: shapeFormat)),
             URLQueryItem(name: "lang", value: locale.identifier),
             URLQueryItem(name: "qid", value: qid),
-            URLQueryItem(name: "route_type", value: self.routeCalculationType)
+            URLQueryItem(name: "route_type", value: routeTypes.joined(separator: ";"))
         ]
 
         if self.routeSignature != nil {
