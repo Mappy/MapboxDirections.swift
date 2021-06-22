@@ -28,7 +28,7 @@ public class MappyRoute: Route {
     }
 
     public let routeType: MappyRouteType
-    public let signature: String
+    public let signature: String?
     public let isInLowEmissionZone: Bool
     public var congestionColors: [String: String]?
 
@@ -36,7 +36,7 @@ public class MappyRoute: Route {
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         try container.encode(routeType, forKey: .routeType)
-        try container.encode(signature, forKey: .signature)
+        try container.encodeIfPresent(signature, forKey: .signature)
         try container.encode(isInLowEmissionZone, forKey: .isInLowEmissionZone)
 
         try super.encode(to: encoder)
@@ -46,7 +46,7 @@ public class MappyRoute: Route {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
         routeType = (try? container.decodeIfPresent(MappyRouteType.self, forKey: .routeType)) ?? .current
-        signature = try container.decodeIfPresent(String.self, forKey: .signature) ?? ""
+        signature = try container.decodeIfPresent(String.self, forKey: .signature)
         isInLowEmissionZone = try container.decodeIfPresent(Bool.self, forKey: .isInLowEmissionZone) ?? false
         congestionColors = nil // assigned from parsing of RouteResponse
 
