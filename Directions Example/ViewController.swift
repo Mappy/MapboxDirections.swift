@@ -164,7 +164,7 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
         ][3]
 
         let useSnapEnv = true
-        let host = URL(string: (useSnapEnv ? "https://routemm-route-2439.k8s.mappysnap.com" : "https://routemm.mappyrecette.net"))!
+        let host = URL(string: (useSnapEnv ? "https://routemm.mappysnap.net" : "https://routemm.mappyrecette.net"))!
         Directions(credentials: DirectionsCredentials(accessToken: nil, host: host)).calculate(mappyOptions) { (session, result) in
 //        Directions.shared.calculate(options) { (session, result) in
             switch result {

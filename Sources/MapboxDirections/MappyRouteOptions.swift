@@ -239,7 +239,7 @@ open class MappyRouteOptions: RouteOptions {
     }
 
     internal override var waypointNames: String? {
-        return waypoints.map({ $0.name ?? "" }).joined(separator: ";")
+        return waypoints.map({ $0.name ?? "" }).joined(separator: ",")
     }
 
     /**
@@ -250,7 +250,7 @@ open class MappyRouteOptions: RouteOptions {
             URLQueryItem(name: "geometries", value: String(describing: shapeFormat)),
             URLQueryItem(name: "lang", value: locale.identifier),
             URLQueryItem(name: "qid", value: qid),
-            URLQueryItem(name: "route_type", value: routeTypes.joined(separator: ";"))
+            URLQueryItem(name: "route_type", value: routeTypes.joined(separator: ","))
         ]
 
         if self.routeSignature != nil {
