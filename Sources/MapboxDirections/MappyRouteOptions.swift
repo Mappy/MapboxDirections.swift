@@ -22,49 +22,26 @@ open class MappyRouteOptions: RouteOptions {
     // MARK: - Initializers
 
     /**
-     Initializes a route options object for routes between the given waypoints
+     Initializes a route options object for routes between the given waypoints.
+     Each leg of the calculated route will be optimized for the respective provider and route type you provide.
 
-     The calculated route will be optimized for the given provider and respect the route calculation type.
+     Keys of known options are removed from additionalQueryParams. You must use the dedicated properties to specify a value for such options.
+     Other keys present in the dictionnary will be sent to the service endpoint as URL query parameters.
+
+     Known options are: route_type, qid, vehicle, motorbike_vehicle, walk_speed and bike_speed.
      */
-    public init(waypoints: [Waypoint], providers: [String], routeTypes: [String], qid: String) {
+    public init(waypoints: [Waypoint], providers: [String], routeTypes: [String], qid: String, additionalQueryParams params: [String:String] = [:]) {
         self.providers = providers
         self.routeTypes = routeTypes
         self.qid = qid
-        self.additionalQueryParams = [String:String]()
-
-        super.init(waypoints: waypoints, profileIdentifier: .automobileAvoidingTraffic)
-        self.commonInit()
-    }
-
-    /**
-     Initializes a route options object for routes between the given waypoints.
-
-     The calculated route will be optimized for the given provider and respect the route calculation type.
-
-     Known options will be pulled from additionalQueryParams and assigned to their respective properties,
-     other keys present in the dictionnary will be sent to the API as URL query parameters.
-     */
-    public init(waypoints: [Waypoint], providers: String, additionalQueryParams params: [String:String]) {
-        self.providers = providers.components(separatedBy: ";")
-
-        self.routeTypes = params["route_type"]?.components(separatedBy: ";") ?? []
-        self.qid = params["qid"] ?? ""
-        self.carVehicle = params["vehicle"]
-        self.motorbikeVehicule = params["motorbike_vehicle"]
-        if let walkSpeed = params["walk_speed"] {
-            self.walkSpeed = MappyWalkSpeed(rawValue: walkSpeed)
-        }
-        if let bikeSpeed = params["bike_speed"] {
-            self.bikeSpeed = MappyBikeSpeed(rawValue: bikeSpeed)
-        }
 
         var cleanedParams = params
-        cleanedParams["route_type"] = nil
-        cleanedParams["qid"] = nil
-        cleanedParams["vehicle"] = nil
-        cleanedParams["motorbike_vehicle"] = nil
-        cleanedParams["walk_speed"] = nil
-        cleanedParams["bike_speed"] = nil
+        cleanedParams.removeValue(forKey: "route_type")
+        cleanedParams.removeValue(forKey: "qid")
+        cleanedParams.removeValue(forKey: "vehicle")
+        cleanedParams.removeValue(forKey: "motorbike_vehicle")
+        cleanedParams.removeValue(forKey: "walk_speed")
+        cleanedParams.removeValue(forKey: "bike_speed")
 
         self.additionalQueryParams = cleanedParams
 
