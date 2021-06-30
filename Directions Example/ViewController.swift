@@ -138,7 +138,8 @@ class ViewController: UIViewController, MBDrawingViewDelegate {
                 ],
                 providers: ["car"],
                 routeTypes: ["fastest"],
-                qid: "demoapp-0e87-48f4-d190-a794fbbb6aac")
+                qid: "demoapp-0e87-48f4-d190-a794fbbb6aac",
+                additionalQueryParams: ["dev_foo":"dev_bar"])
             options.shapeFormat = .polyline6
             options.carVehicle = "comcar"
             options.motorbikeVehicule = "moto125"

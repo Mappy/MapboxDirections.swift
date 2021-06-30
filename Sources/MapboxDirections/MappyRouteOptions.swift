@@ -25,50 +25,53 @@ open class MappyRouteOptions: RouteOptions {
      Initializes a route options object for routes between the given waypoints.
      Each leg of the calculated route will be optimized for the respective provider and route type you provide.
 
-     Keys of known options are removed from additionalQueryParams. You must use the dedicated properties to specify a value for such options.
+     Keys for known options are forbidden inside additionalQueryParams. You must use the dedicated properties to specify a value for those options.
      Other keys present in the dictionnary will be sent to the service endpoint as URL query parameters.
 
-     Known options are: route_type, qid, vehicle, motorbike_vehicle, walk_speed and bike_speed.
+     Known options are: geometries, lang, qid, route_type, alternatives, bearing, vehicle, motorbike_vehicle, walk_speed and bike_speed, waypoint_names.
+
+     - Parameters:
+     	- waypoints: The waypoint the route must pass by, including the departure of the route.
+     	- providers: The providers to use to calculate each leg of the route. You must provide one provider per waypoint minus one (departure waypoint).
+     	- routeTypes: The route types to use to calculate
+     	- qid: An ID (preferably a UUID string) identifying the requests of a same navigation session.
+     	- additionalQueryParams: An extension point for parameters that will be passed as URL query parameters of the request.
      */
     public init(waypoints: [Waypoint], providers: [String], routeTypes: [String], qid: String, additionalQueryParams params: [String:String] = [:]) {
+        let forbiddenParams: Set<String> = ["geometries", "lang", "qid", "route_type", "alternatives", "bearing", "vehicle", "motorbike_vehicle", "walk_speed", "bike_speed", "waypoint_names"]
+		let forbiddenFounds = forbiddenParams.intersection(params.keys)
+
+        precondition(forbiddenFounds.isEmpty, "Forbidden keys \(forbiddenFounds) found in query params. Please use dedicated properties of MappyRouteOptions and its superclass to provide values for those parameters.")
+
         self.providers = providers
         self.routeTypes = routeTypes
         self.qid = qid
-
-        var cleanedParams = params
-        cleanedParams.removeValue(forKey: "route_type")
-        cleanedParams.removeValue(forKey: "qid")
-        cleanedParams.removeValue(forKey: "vehicle")
-        cleanedParams.removeValue(forKey: "motorbike_vehicle")
-        cleanedParams.removeValue(forKey: "walk_speed")
-        cleanedParams.removeValue(forKey: "bike_speed")
-
-        self.additionalQueryParams = cleanedParams
+        self.additionalQueryParams = params
 
         super.init(waypoints: waypoints, profileIdentifier: .automobileAvoidingTraffic)
         self.commonInit()
     }
 
     public required init(waypoints: [Waypoint], profileIdentifier: DirectionsProfileIdentifier?) {
-        fatalError("Please use either init(waypoints:providers:routeTypes:qid:) or init(waypoints:providers:additionalQueryParams:) to create a MappyRouteOptions")
+        fatalError("Please use init(waypoints:providers:routeTypes:qid:additionalQueryParams:) to create a MappyRouteOptions")
     }
 
     #if canImport(CoreLocation)
     /**
      Initializes a route options object for routes between the given locations.
      */
-    public convenience init(locations: [CLLocation], providers: [String], routeTypes: [String], qid: String) {
+    public convenience init(locations: [CLLocation], providers: [String], routeTypes: [String], qid: String, additionalQueryParams params: [String:String] = [:]) {
         let waypoints = locations.map { Waypoint(location: $0) }
-        self.init(waypoints: waypoints, providers: providers, routeTypes: routeTypes, qid: qid)
+        self.init(waypoints: waypoints, providers: providers, routeTypes: routeTypes, qid: qid, additionalQueryParams: params)
     }
     #endif
 
     /**
      Initializes a route options object for routes between the given geographic coordinates.
      */
-    public convenience init(coordinates: [CLLocationCoordinate2D], providers: [String], routeTypes: [String], qid: String) {
+    public convenience init(coordinates: [CLLocationCoordinate2D], providers: [String], routeTypes: [String], qid: String, additionalQueryParams params: [String:String] = [:]) {
         let waypoints = coordinates.map { Waypoint(coordinate: $0) }
-        self.init(waypoints: waypoints, providers: providers, routeTypes: routeTypes, qid: qid)
+        self.init(waypoints: waypoints, providers: providers, routeTypes: routeTypes, qid: qid, additionalQueryParams: params)
     }
 
     private func commonInit() {
